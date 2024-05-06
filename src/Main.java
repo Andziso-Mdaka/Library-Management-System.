@@ -1,3 +1,5 @@
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.Scanner;
@@ -19,11 +21,11 @@ public class Main {
         Books book4 = new Books("How to steal","Martin","0000000",true);
         Books book5 = new Books("Lisan Al Gaib","Andzi","0000012",true);
 
-        BookCollection.add(book1);
-        BookCollection.add(book2);
-        BookCollection.add(book3);
-        BookCollection.add(book4);
-        BookCollection.add(book5);
+        libraryData.bookCollection.add(book1);
+        libraryData.bookCollection.add(book2);
+        libraryData.bookCollection.add(book3);
+        libraryData.bookCollection.add(book4);
+        libraryData.bookCollection.add(book5);
     }
 
     // Method to set up initial member collection
@@ -35,11 +37,11 @@ public class Main {
         Members member4 = new Members("ash","ash@gmail.com");
         Members member5 = new Members("martin","martin@gmail.com");
 
-        MemberCollection.add(member1);
-        MemberCollection.add(member2);
-        MemberCollection.add(member3);
-        MemberCollection.add(member4);
-        MemberCollection.add(member5);
+        libraryData.memberCollection.add(member1);
+        libraryData.memberCollection.add(member2);
+        libraryData.memberCollection.add(member3);
+        libraryData.memberCollection.add(member4);
+        libraryData.memberCollection.add(member5);
     }
 
     // Method to validate email format
@@ -69,7 +71,7 @@ public class Main {
         }
 
         Members member = new Members(Mname, Memail);
-        MemberCollection.add(member);
+        libraryData.memberCollection.add(member);
         System.out.println("member has been added");
     }
 
@@ -113,7 +115,7 @@ public class Main {
         boolean Bavailable = Availability();
 
         Books book = new Books(BTitle, BAuthor, BISBN, Bavailable);
-        BookCollection.add(book);
+        libraryData.bookCollection.add(book);
         System.out.println("book has been added");
     }
 
@@ -133,7 +135,7 @@ public class Main {
                 Scanner Binput = new Scanner(System.in);
                 String search = Binput.nextLine().toLowerCase();
 
-                for (Books book : BookCollection) {
+                for (Books book :  libraryData.bookCollection) {
                     if (book.Title.toLowerCase().contains(search) || book.Author.toLowerCase().contains(search)) {
                         System.out.println(book.Title + ", By " + book.Author);
                     }
@@ -146,7 +148,7 @@ public class Main {
                 Scanner Minput = new Scanner(System.in);
                 String Membersearch = Minput.nextLine().toLowerCase();
 
-                for (Members member : MemberCollection) {
+                for (Members member :  libraryData.memberCollection) {
                     if (member.Name.toLowerCase().contains(Membersearch) || member.Email.toLowerCase().contains(Membersearch)) {
                         System.out.println(member.Name + ", " + member.Email);
                     }
@@ -159,7 +161,7 @@ public class Main {
     // Method to display all members and their borrowed books
     public static void DisplayMembers() {
         int counter = 1;
-        for (Members member : MemberCollection) {
+        for (Members member : libraryData.memberCollection) {
             System.out.println(counter + ". " + member.Name + ", " + member.Email);
             if (!member.borrowedBooks.isEmpty()) {
                 System.out.println("Borrowed Books:");
@@ -178,7 +180,7 @@ public class Main {
     // Method to display all books in the library
     public static void DisplayBooks(){
         int counter = 1;
-        for (Books book : BookCollection){
+        for (Books book :  libraryData.bookCollection){
             System.out.println(counter + "." +book.Title  + " by " + book.Author );
             counter = counter + 1;
         }
@@ -195,40 +197,71 @@ public class Main {
         try {
             int choice = inputScanner.nextInt();
 
-            if (choice < 1 || choice > BookCollection.size()) {
+            if (choice < 1 || choice >  libraryData.bookCollection.size()) {
                 System.out.println("Invalid book selection. Please try again.");
                 return;
             }
 
-            Books selectedBook = BookCollection.get(choice - 1);
+            Books selectedBook =  libraryData.bookCollection.get(choice - 1);
 
             if (selectedBook.IsAvailable) {
                 System.out.println("Enter your member email:");
                 String memberEmail = inputScanner.next();
                 // getting specific member
                 Members member = null;
-                for (Members m : MemberCollection) {
+                LocalDate currentDate = LocalDate.now();
+                for (Members m :  libraryData.memberCollection) {
                     if (m.Email.equals(memberEmail)) {
                         member = m;
+                        // Get the current date
+                        // Add days, months, or years as needed
+                        member.DueDate = currentDate.plusDays(14);
                         break;
                     }
+
                 }
                 // adding book
                 if (member != null) {
                     member.borrowedBooks.add(selectedBook.Title);
                     selectedBook.IsAvailable = false;
-                    System.out.println("Book checked out successfully for " + member.Name);
+                    System.out.println("Book checked out successfully for " + member.Name + " on " + currentDate);
+                    System.out.println("Return the book by " + member.DueDate);
+
+                    // Add transaction log
+                    LibraryData.Transaction checkoutTransaction = new LibraryData.Transaction(member.Name, selectedBook.Title, currentDate, LibraryData.TransactionType.CHECKOUT);
+                    libraryData.transactionList.add(checkoutTransaction);
                 } else {
                     System.out.println("Member not found.");
                 }
             } else {
                 System.out.println("Sorry, the selected book is already checked out.");
             }
+
         } catch (InputMismatchException e) {
             System.out.println("Invalid input. Please enter a valid number.");
             inputScanner.nextLine(); // Clear the input
         }
+
+
     }
+
+    // Method to calculate overdue fines
+    public static double calculateOverdueFines(LocalDate dueDate) {
+        // Define a constant for the fine rate per day
+        final double FINE_RATE_PER_DAY = 0.5; // Example fine rate: $0.50 per day
+
+        // Get the current date
+        LocalDate currentDate = LocalDate.now();
+
+        // Calculate the number of days overdue
+        long daysOverdue = ChronoUnit.DAYS.between(dueDate, currentDate);
+
+        // Calculate the fine amount
+        double fineAmount = Math.max(0, daysOverdue) * FINE_RATE_PER_DAY; // Ensure fine amount is non-negative
+
+        return fineAmount;
+    }
+
 
     // Method to return a book
     public static void BookReturn() {
@@ -238,11 +271,11 @@ public class Main {
         System.out.println("Enter your email to return a book:");
         Scanner inputScanner = new Scanner(System.in);
         String memberEmail = inputScanner.nextLine();
-
+        LocalDate currentDate = LocalDate.now();
 
         // get specific member
         Members member = null;
-        for (Members m : MemberCollection) {
+        for (Members m :  libraryData.memberCollection) {
             if (m.Email.equals(memberEmail)) {
                 member = m;
                 break;
@@ -261,10 +294,19 @@ public class Main {
 
             // remove book
             if (member.borrowedBooks.remove(bookToReturn)) {
-                for (Books book : BookCollection) {
+                for (Books book :  libraryData.bookCollection) {
                     if (book.Title.equals(bookToReturn)) {
+                        double fineAmount = calculateOverdueFines(member.DueDate);
+                        if (fineAmount > 0) {
+                            System.out.println("Book returned successfully. Overdue fines: $" + fineAmount);
+                        } else {
+                            System.out.println("Book returned successfully.");
+                        }
                         book.IsAvailable = true;
-                        System.out.println("Book returned successfully.");
+
+                        // Add transaction log
+                        LibraryData.Transaction returnTransaction = new LibraryData.Transaction(member.Name, bookToReturn, currentDate, LibraryData.TransactionType.RETURN);
+                        libraryData.transactionList.add(returnTransaction);
                         return;
                     }
                 }
@@ -276,55 +318,212 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) {
-        // Set up initial book and member collections
-        SetBooks();
-        SetMembers();
+    public static void DisplayTransactions() {
+        System.out.println("Transaction History:");
+        for (LibraryData.Transaction transaction : libraryData.transactionList) {
+            String transactionType = transaction.transactionType == LibraryData.TransactionType.CHECKOUT ? "Checkout" : "Return";
+            System.out.println(transactionType + ": " + transaction.memberName + " - " + transaction.bookTitle + " (" + transaction.transactionDate + ")");
+        }
+        System.out.println();
+    }
 
-        // Main loop for the library management system
-        while (true){
-            System.out.println(" Welcome to the Manga library");
-            System.out.println("1. Register Member");
-            System.out.println("2. Add Book");
-            System.out.println("3. Search Book/Member");
-            System.out.println("4. Book Checkout");
-            System.out.println("5. Book Return");
-            System.out.println("6. Library Catalogue");
-            System.out.println("7. Library Members");
-            System.out.println("8. Exit");
-            System.out.println(" ");
-
-            Scanner mainInputScanner = new Scanner(System.in);
-            String input = mainInputScanner.nextLine();
-
-            switch (input) {
-                case "1":
-                    AddMember();
-                    break;
-                case "2":
-                    AddBook();
-                    break;
-                case "3":
-                    Search();
-                    break;
-                case "4":
-                    BookCheckout();
-                    break;
-                case "5":
-                    BookReturn();
-                    break;
-                case "6":
-                    DisplayBooks();
-                    break;
-                case "7":
-                    DisplayMembers();
-                    break;
-                case "8":
-                    System.exit(0);
-                    break;
-                default:
-                    System.out.println("Invalid input, please try again");
+    private static Books GetBookByTitle(String title) {
+        for (Books book : Main.libraryData.bookCollection) {
+            if (book.Title.equals(title)) {
+                return book;
             }
         }
+        return null;
     }
+
+    // Method to check due dates for a member
+    public static void CheckDueDates() {
+        System.out.println("Enter your member email to check due dates:");
+        Scanner inputScanner = new Scanner(System.in);
+        String memberEmail = inputScanner.nextLine();
+
+        Members member = null;
+        for (Members m : libraryData.memberCollection) {
+            if (m.Email.equals(memberEmail)) {
+                member = m;
+                break;
+            }
+        }
+
+        if (member != null) {
+            System.out.println("Due Dates for " + member.Name + ":");
+            for (String bookTitle : member.borrowedBooks) {
+                Books book = GetBookByTitle(bookTitle);
+                if (book != null) {
+                    LocalDate dueDate = member.DueDate;
+                    System.out.println("- " + bookTitle + ": " + dueDate);
+                }
+            }
+        } else {
+            System.out.println("Member not found.");
+        }
+        System.out.println();
+    }
+
+    // Method to view fines for a member
+    public static void ViewFines() {
+        System.out.println("Enter your member email to view fines:");
+        Scanner inputScanner = new Scanner(System.in);
+        String memberEmail = inputScanner.nextLine();
+
+        Members member = null;
+        for (Members m : libraryData.memberCollection) {
+            if (m.Email.equals(memberEmail)) {
+                member = m;
+                break;
+            }
+        }
+
+        if (member != null) {
+            double totalFine = 0.0;
+            for (String bookTitle : member.borrowedBooks) {
+                Books book = GetBookByTitle(bookTitle);
+                if (book != null) {
+                    LocalDate dueDate = member.DueDate;
+                    double fineAmount = calculateOverdueFines(dueDate);
+                    totalFine += fineAmount;
+                }
+            }
+            System.out.println("Total fines for " + member.Name + ": $" + totalFine);
+        } else {
+            System.out.println("Member not found.");
+        }
+        System.out.println();
+    }
+
+    // Method to manage notifications
+    public static void ManageNotifications() {
+        System.out.println("Enter your member email to manage notifications:");
+        Scanner inputScanner = new Scanner(System.in);
+        String memberEmail = inputScanner.nextLine();
+
+        Members member = null;
+        for (Members m : libraryData.memberCollection) {
+            if (m.Email.equals(memberEmail)) {
+                member = m;
+                break;
+            }
+        }
+
+        if (member != null) {
+            System.out.println("Notification Management for " + member.Name + ":");
+            System.out.println("1. Enable notifications");
+            System.out.println("2. Disable notifications");
+            System.out.println("Enter your choice:");
+
+            String choice = inputScanner.nextLine();
+
+            switch (choice) {
+                case "1":
+                    member.notificationsEnabled = true;
+                    System.out.println("Notifications enabled for " + member.Name);
+                    break;
+                case "2":
+                    member.notificationsEnabled = false;
+                    System.out.println("Notifications disabled for " + member.Name);
+                    break;
+                default:
+                    System.out.println("Invalid choice.");
+            }
+        } else {
+            System.out.println("Member not found.");
+        }
+        System.out.println();
+    }
+
+        public static LibraryData libraryData;
+
+        public static void main(String[] args) {
+            // Load library data
+            libraryData = LibraryData.loadLibraryData();
+
+            // Set up initial book and member collections if data is empty
+            if (libraryData.bookCollection.isEmpty()) {
+                SetBooks();
+            }
+            if (libraryData.memberCollection.isEmpty()) {
+                SetMembers();
+            }
+
+            // Start the overdue fine checker thread
+            OverdueFineChecker overdueFineChecker = new OverdueFineChecker();
+            overdueFineChecker.start();
+
+            // Start the notification sender thread
+            NotificationSender notificationSender = new NotificationSender();
+            notificationSender.start();
+
+            // Main loop for the library management system
+            while (true){
+                System.out.println(" Welcome to the Manga library");
+                System.out.println("1. Register Member");
+                System.out.println("2. Add Book");
+                System.out.println("3. Search Book/Member");
+                System.out.println("4. Book Checkout");
+                System.out.println("5. Book Return");
+                System.out.println("6. Library Catalogue");
+                System.out.println("7. Library Members");
+                System.out.println("8. Check Due Dates");
+                System.out.println("9. View Fines");
+                System.out.println("10. Manage Notifications");
+                System.out.println("11. Transaction History");
+                System.out.println("12. Exit");
+                System.out.println(" ");
+
+                Scanner mainInputScanner = new Scanner(System.in);
+                String input = mainInputScanner.nextLine();
+
+                switch (input) {
+                    case "1":
+                        AddMember();
+                        break;
+                    case "2":
+                        AddBook();
+                        break;
+                    case "3":
+                        Search();
+                        break;
+                    case "4":
+                        BookCheckout();
+                        break;
+                    case "5":
+                        BookReturn();
+                        break;
+                    case "6":
+                        DisplayBooks();
+                        break;
+                    case "7":
+                        DisplayMembers();
+                        break;
+                    case "8":
+                        CheckDueDates();
+                        break;
+                    case "9":
+                        ViewFines();
+                        break;
+                    case "10":
+                        ManageNotifications();
+                        break;
+                    case "11":
+                        DisplayTransactions();
+                        break;
+                    case "12":
+                        System.exit(0);
+                        break;
+                    default:
+                        System.out.println("Invalid input, please try again");
+                }
+                // Save library data when the application closes
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    LibraryData.saveLibraryData(libraryData);
+                }));
+            }
+
+        }
+
 }

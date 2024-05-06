@@ -1,7 +1,8 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public  class Books {
+public  class Books implements Serializable {
     String Title;
     String Author;
     String ISBN;
